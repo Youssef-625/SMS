@@ -15,11 +15,22 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Seed users first (required for all other seeders)
+        $this->call([
+            UserSeeder::class,
+            StudentSeeder::class,
+            TeacherSeeder::class,
+            ParentSeeder::class,
+            NotificationSeeder::class,
         ]);
+
+        $this->command->info('✅ Phase 1 database seeding completed successfully!');
+        $this->command->info('');
+        $this->command->info('Test Credentials:');
+        $this->command->info('Super Admin: superadmin@sms.com / password');
+        $this->command->info('Admin: admin@sms.com / password');
+        $this->command->info('Teacher: ahmed.hassan@sms.com / password');
+        $this->command->info('Student: john.doe@sms.com / password');
+        $this->command->info('Parent: parent.one@sms.com / password');
     }
 }
