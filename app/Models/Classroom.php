@@ -4,39 +4,36 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Teacher extends Model
+class Classroom extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
-        'teacher_id',
-        'date_of_birth',
-        'gender',
-        'address',
-        'phone',
-        'hire_date',
-        'qualification',
-        'subject_specialization',
+        'name',
+        'grade_level',
+        'capacity',
+        'academic_year',
+        'description',
+        'is_active',
     ];
 
     protected $casts = [
-        'date_of_birth' => 'date',
-        'hire_date' => 'date',
+        'is_active' => 'boolean',
     ];
 
-    public function user(): BelongsTo
+    public function students(): BelongsToMany
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsToMany(Student::class, 'classroom_student')
+            ->withPivot('enrolled_at')
+            ->withTimestamps();
     }
 
-    public function classrooms(): BelongsToMany
+    public function teachers(): BelongsToMany
     {
-        return $this->belongsToMany(Classroom::class, 'classroom_teacher')
+        return $this->belongsToMany(Teacher::class, 'classroom_teacher')
             ->withPivot('role', 'assigned_at')
             ->withTimestamps();
     }
@@ -44,7 +41,7 @@ class Teacher extends Model
     public function subjects(): BelongsToMany
     {
         return $this->belongsToMany(Subject::class, 'classroom_subject')
-            ->withPivot('classroom_id', 'weekly_hours')
+            ->withPivot('teacher_id', 'weekly_hours')
             ->withTimestamps();
     }
 

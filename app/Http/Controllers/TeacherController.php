@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Teacher;
 use App\Models\User;
+use App\Models\Student;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -11,7 +13,7 @@ class TeacherController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Teacher::with('user');
+        $query = Teacher::with(['user', 'classrooms', 'subjects', 'schedules']);
 
         if ($request->has('search')) {
             $search = $request->search;
@@ -66,7 +68,85 @@ class TeacherController extends Controller
 
     public function show(Teacher $teacher): JsonResponse
     {
-        return $this->success($teacher->load('user'));
+        return $this->success($teacher->load(['user', 'classrooms', 'subjects', 'schedules']));
+    }
+
+    /**
+     * Return classrooms for a given teacher (admin route)
+     */
+    public function classrooms(Teacher $teacher): JsonResponse
+    {
+        $classrooms = $teacher->classrooms()->with(['students.user'])->get();
+
+        return $this->success($classrooms);
+    }
+
+    /**
+     * Return unique students taught by this teacher (admin route)
+     */
+    public function students(Teacher $teacher, Request $request): JsonResponse
+    {
+        $perPage = (int) $request->get('per_page', 20);
+        $classroomIds = $teacher->classrooms()->pluck('classrooms.id')->toArray();
+
+        if (empty($classroomIds)) {
+            $empty = new LengthAwarePaginator([], 0, $perPage, 1, [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]);
+
+            return $this->success($empty);
+        }
+
+        $students = Student::whereHas('classrooms', function ($q) use ($classroomIds) {
+            $q->whereIn('classrooms.id', $classroomIds);
+        })->with('user')->paginate($perPage);
+
+        return $this->success($students);
+    }
+
+    /**
+     * Return classrooms for the authenticated teacher (me endpoint)
+     */
+    public function myClassrooms(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        if (!$user || !$user->teacher) {
+            return $this->error('Not a teacher or not authenticated', 403);
+        }
+
+        $classrooms = $user->teacher->classrooms()->with(['students.user'])->get();
+
+        return $this->success($classrooms);
+    }
+
+    /**
+     * Return students for the authenticated teacher (me endpoint)
+     */
+    public function myStudents(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        if (!$user || !$user->teacher) {
+            return $this->error('Not a teacher or not authenticated', 403);
+        }
+
+        $perPage = (int) $request->get('per_page', 20);
+        $classroomIds = $user->teacher->classrooms()->pluck('classrooms.id')->toArray();
+
+        if (empty($classroomIds)) {
+            $empty = new LengthAwarePaginator([], 0, $perPage, 1, [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]);
+
+            return $this->success($empty);
+        }
+
+        $students = Student::whereHas('classrooms', function ($q) use ($classroomIds) {
+            $q->whereIn('classrooms.id', $classroomIds);
+        })->with('user')->paginate($perPage);
+
+        return $this->success($students);
     }
 
     public function update(Request $request, Teacher $teacher): JsonResponse

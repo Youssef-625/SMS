@@ -24,7 +24,16 @@ class DatabaseSeeder extends Seeder
             NotificationSeeder::class,
         ]);
 
+        // Seed Phase 2 academic structure
+        $this->call([
+            ClassroomSeeder::class,
+            SubjectSeeder::class,
+            ScheduleSeeder::class,
+            ClassroomRelationshipSeeder::class,
+        ]);
+
         $this->command->info('✅ Phase 1 database seeding completed successfully!');
+        $this->command->info('✅ Phase 2 academic structure seeding completed successfully!');
         $this->command->info('');
         $this->command->info('Test Credentials:');
         $this->command->info('Super Admin: superadmin@sms.com / password');

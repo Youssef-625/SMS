@@ -62,7 +62,7 @@ class StudentController extends Controller
 
     public function show(Student $student): JsonResponse
     {
-        return $this->success($student->load('user'));
+        return $this->success($student->load(['user', 'classrooms']));
     }
 
     public function update(Request $request, Student $student): JsonResponse

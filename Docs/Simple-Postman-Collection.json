@@ -1,0 +1,219 @@
+{
+  "info": {
+    "name": "SMS - Simple Collection",
+    "_postman_id": "sms-simple-collection",
+    "description": "Minimal collection: login, my classrooms, teacher classrooms/students (admin)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var json = pm.response.json();",
+              "if (json && json.success && json.data && json.data.token) {",
+              "  pm.environment.set('token', json.data.token);",
+              "} else if (json && json.token) {",
+              "  pm.environment.set('token', json.token);",
+              "}"
+            ]
+          }
+        }
+      ]
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Indexes - Users",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{base_url}}/users", "host": ["{{base_url}}"], "path": ["users"] }
+      }
+    },
+    {
+      "name": "Indexes - Students",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{base_url}}/students", "host": ["{{base_url}}"], "path": ["students"] }
+      }
+    },
+    {
+      "name": "Indexes - Teachers",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{base_url}}/teachers", "host": ["{{base_url}}"], "path": ["teachers"] }
+      }
+    },
+    {
+      "name": "Indexes - Parents",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{base_url}}/parents", "host": ["{{base_url}}"], "path": ["parents"] }
+      }
+    },
+    {
+      "name": "Indexes - Classrooms",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{base_url}}/classrooms", "host": ["{{base_url}}"], "path": ["classrooms"] }
+      }
+    },
+    {
+      "name": "Indexes - Subjects",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{base_url}}/subjects", "host": ["{{base_url}}"], "path": ["subjects"] }
+      }
+    },
+    {
+      "name": "Indexes - Schedules",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{base_url}}/schedules", "host": ["{{base_url}}"], "path": ["schedules"] }
+      }
+    },
+    {
+      "name": "Me - Classrooms",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/teachers/me/classrooms",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "teachers",
+            "me",
+            "classrooms"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Me - Students",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/teachers/me/students",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "teachers",
+            "me",
+            "students"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin - Teacher Classrooms",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/teachers/:teacherId/classrooms",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "teachers",
+            ":teacherId",
+            "classrooms"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin - Teacher Students",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/teachers/:teacherId/students",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "teachers",
+            ":teacherId",
+            "students"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:8000/api" },
+    { "key": "token", "value": "" }
+  ]
+}
+
