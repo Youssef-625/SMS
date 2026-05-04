@@ -32,6 +32,14 @@ class DatabaseSeeder extends Seeder
             ClassroomRelationshipSeeder::class,
         ]);
 
+        // Seed Phase 3 academic operations
+        $this->call([
+            ExamSeeder::class,
+            AssignmentSeeder::class,
+            SubmissionSeeder::class,
+            AttendanceSeeder::class,
+        ]);
+
         $this->command->info('✅ Phase 1 database seeding completed successfully!');
         $this->command->info('✅ Phase 2 academic structure seeding completed successfully!');
         $this->command->info('');

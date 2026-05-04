@@ -171,3 +171,157 @@ Common query params summary
 
 If anything is missing or you want this exported as a downloadable Postman collection with examples, tell me and I will produce it.
 
+---
+
+# Phase 3 — Academic Operations (Attendance, Exams & Grades, Assignments & Submissions)
+
+This section documents the Phase 3 endpoints that were added to support core academic operations. All Phase 3 endpoints are registered in `routes/api.php` and follow the project's JSON response convention (success, message, data). Authentication: Laravel Sanctum — include `Authorization: Bearer {token}`.
+
+Notes about roles:
+- Admin / Super Admin: can manage all resources (create/update/delete/index)
+- Teacher: can record attendance for their classrooms, create assignments/exams for their classes, and grade submissions
+- Student: can submit assignments and view their own submissions/grades
+
+Default pagination: all index endpoints support `?page=` and many teacher/student lists support `?per_page=` (default 20).
+
+Attendance
+- GET /attendances
+  - Role: admin/teacher
+  - Filters: `?classroom_id=`, `?student_id=`, `?date_from=YYYY-MM-DD`, `?date_to=YYYY-MM-DD`, `?status=present|absent|late|excused`
+  - Returns: paginated attendances. Each attendance includes `student` (with `user`) and `classroom`.
+
+- POST /attendances
+  - Role: admin or teacher (teacher must be assigned to the classroom)
+  - Body (JSON):
+    {
+      "student_id": 123,
+      "classroom_id": 45,
+      "date": "2026-05-02",
+      "status": "present",
+      "notes": "Arrived on time"
+    }
+  - Behavior: idempotent — API uses updateOrCreate so posting the same student/classroom/date updates existing record.
+  - Returns: created/updated attendance object.
+
+- GET /attendances/{id} — show attendance
+- PUT /attendances/{id} — update fields (status/notes)
+- DELETE /attendances/{id} — remove attendance record
+
+Exams
+- GET /exams
+  - Filters: `?classroom_id=`, `?subject_id=`, `?is_online=0|1`, `?type=quiz|midterm|final|other`, `?date_from=`, `?date_to=`.
+  - Returns: exams with `subject`, `classroom`, and optionally related `schedules` or `creator` (teacher)
+
+- POST /exams
+  - Role: admin/teacher
+  - Body (JSON):
+    {
+      "subject_id": 12,
+      "classroom_id": 45,
+      "name": "Midterm - Term 2",
+      "type": "midterm",
+      "is_online": true,
+      "scheduled_at": "2026-05-15T10:00:00Z",
+      "duration_minutes": 60,
+      "instructions": "Open book: false"
+    }
+  - Returns: exam record.
+
+- GET /exams/{id}, PUT /exams/{id}, DELETE /exams/{id}
+
+Grades
+- GET /grades
+  - Role: admin/teacher
+  - Filters: `?exam_id=`, `?student_id=`, `?classroom_id=`. Returns grade records with `exam` and `student.user` relations.
+
+- POST /grades
+  - Role: admin/teacher (teacher for that exam/classroom)
+  - Body (JSON):
+    {
+      "exam_id": 5,
+      "student_id": 123,
+      "score": 85.5,
+      "remarks": "Good work"
+    }
+  - Behavior: create grade or update if exam+student exists (unique constraint on exam_id + student_id).
+
+- GET /grades/{id}, DELETE /grades/{id}
+
+Assignments
+- GET /assignments
+  - Filters: `?classroom_id=`, `?subject_id=`, `?is_published=0|1`, `?due_before=YYYY-MM-DD`
+  - Returns: assignment list with `subject`, `classroom`, and `created_by` (teacher user)
+
+- POST /assignments
+  - Role: admin/teacher
+  - Body (JSON):
+    {
+      "title": "Homework 3 - Algebra",
+      "description": "Solve problems 1..10",
+      "subject_id": 12,
+      "classroom_id": 45,
+      "due_date": "2026-05-10",
+      "max_score": 100,
+      "is_published": true
+    }
+  - Returns: created assignment object.
+
+- GET /assignments/{id}, PUT /assignments/{id}, DELETE /assignments/{id}
+
+Submissions
+- POST /assignments/{assignment}/submit
+  - Role: authenticated student
+  - Content-Type: `multipart/form-data` (files) or JSON (text-only)
+  - Fields (multipart or JSON): `text` (string), `files[]` (file uploads)
+  - Returns: submission record with `assignment`, `student.user`, `submitted_at`.
+  - Note: API accepts multiple files; store locations are returned in response.
+
+- GET /submissions (admin)
+  - Returns: all submissions with assignment, student, optionally pagination and filters `?assignment_id=`, `?student_id=`.
+
+- GET /submissions/{id}, DELETE /submissions/{id}
+
+- POST /submissions/{submission}/grade
+  - Role: teacher assigned to the classroom/subject
+  - Body (JSON):
+    {
+      "score": 92.5,
+      "feedback": "Excellent explanations"
+    }
+  - Behavior: marks `graded_by` and `graded_at`, stores `score` and `feedback`.
+
+Relations summary (what each Phase 3 resource includes)
+- Attendance: includes `student` (with `user`) and `classroom`.
+- Exam: includes `subject`, `classroom`, `creator` (teacher user) and flags `is_online`, `duration_minutes`.
+- Grade: includes `exam`, `student` (with `user`), and optional `remarks`.
+- Assignment: includes `subject`, `classroom`, `created_by` (teacher user), `due_date`, `max_score`.
+- Submission: includes `assignment`, `student` (with `user`), `files` array, `score`, `feedback`, `graded_by` and `graded_at`.
+
+Postman / Frontend notes
+- Use the project's Postman collection (see `Docs/Postman-Collection-Phase2.json` or `Docs/Simple-Postman-Collection.json`). The login response script will capture `token` into environment — use `{{token}}` for `Authorization: Bearer {{token}}`.
+- For file uploads (submitting assignments): set request to `multipart/form-data`, include `files[]` for each file and text fields for `text`.
+- To grade a submission, use `POST /submissions/{id}/grade` with JSON `{ score, feedback }` and a teacher token.
+
+Seeding Phase 3 data for QA/staging
+1) If you already ran Phase 2 seeding, Phase 3 seeders are included in `DatabaseSeeder` and will run with:
+```powershell
+php artisan migrate --force
+php artisan db:seed --force
+```
+2) If you face duplicates when re-seeding an existing DB, run a fresh migration during development:
+```powershell
+php artisan migrate:fresh --seed --force
+```
+
+Tips & known limits
+- The current Phase 3 implementation provides scaffolding for online exams (`is_online`, `scheduled_at`, `duration_minutes`) but does not include a full exam attempt engine (question bank, attempt tracking, auto-grading). If you need the full online-exam flow, I can implement `Question`, `ExamAttempt`, and `AttemptAnswer` models and controllers next.
+- Tests: feature tests for Phase 3 were added under `tests/Feature/Phase3/`. CI runs the full test-suite in GitHub Actions (see `.github/workflows/phpunit.yml`). If running tests locally you may need the `pdo_sqlite` extension enabled for your CLI PHP or configure `phpunit` to use a MySQL test database.
+
+---
+
+If you'd like, I can now:
+- export a new Postman collection with example bodies/responses for all Phase 3 endpoints, or
+- implement the full online-exam attempt engine (models, controllers, seeders, tests), or
+- generate example response samples for each endpoint and embed them in this doc.
+
+Tell me which of the above you'd like next.

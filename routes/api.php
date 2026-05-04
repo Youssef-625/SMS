@@ -11,6 +11,11 @@ use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ClassroomRelationshipController;
+use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\ExamController;
+use App\Http\Controllers\GradeController;
+use App\Http\Controllers\AssignmentController;
+use App\Http\Controllers\SubmissionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -53,6 +58,12 @@ Route::group(['middleware' => ['auth:sanctum','role:admin|super_admin']], functi
     Route::apiResource('classrooms', ClassroomController::class);
     Route::apiResource('subjects', SubjectController::class);
     Route::apiResource('schedules', ScheduleController::class);
+    Route::apiResource('attendances', AttendanceController::class)->only(['index','store','show','update','destroy']);
+    Route::apiResource('exams', ExamController::class);
+    Route::apiResource('grades', GradeController::class)->only(['index','store','show','destroy']);
+    Route::apiResource('assignments', AssignmentController::class);
+    // Submissions: admins can list/delete; students submit via auth routes below
+    Route::apiResource('submissions', SubmissionController::class)->only(['index','show','destroy']);
     // Admin endpoints to fetch teacher relationships
     Route::get('teachers/{teacher}/classrooms', [TeacherController::class, 'classrooms']);
     Route::get('teachers/{teacher}/students', [TeacherController::class, 'students']);
@@ -78,4 +89,13 @@ Route::group(['middleware' => ['auth:sanctum','role:admin|super_admin']], functi
         // Get all relationships
         Route::get('/classroom/{classroom}', [ClassroomRelationshipController::class, 'getClassroomRelationships']);
     });
+});
+
+// Authenticated routes for students/teachers (submissions, attendances marking by teacher/student)
+Route::middleware('auth:sanctum')->group(function () {
+    // Students submit assignments
+    Route::post('/assignments/{assignment}/submit', [SubmissionController::class, 'store']);
+    // Teachers grade submission
+    Route::post('/submissions/{submission}/grade', [SubmissionController::class, 'grade']);
+    // Teachers or admin can record attendance via attendances resource (store)
 });
